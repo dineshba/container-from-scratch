@@ -7,19 +7,22 @@ import (
 	"syscall"
 )
 
-// docker run <container> cmd args
-// go run main.go run cmd args
+// go run container.go run <cmd> <args>
+// docker run <cmd> <args>
 func main() {
-	if os.Args[1] == "run" {
+	switch os.Args[1] {
+	case "run":
 		run()
-	} else {
-		panic(fmt.Sprintf("what? %s", os.Args[1]))
+	case "child":
+		child()
+	default:
+		panic("invalid command!!")
 	}
 }
-
 func run() {
 	fmt.Printf("Running %v as PID %d \n", os.Args[2:], os.Getpid())
-	cmd := exec.Command(os.Args[2], os.Args[3:]...)
+	args := append([]string{"child"}, os.Args[2:]...)
+	cmd := exec.Command("/proc/self/exe", args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -27,6 +30,18 @@ func run() {
 		// UTS - Unix Timesharing System
 		Cloneflags: syscall.CLONE_NEWUTS,
 	}
+	if err := cmd.Run(); err != nil {
+		fmt.Println("ERROR:", err)
+		os.Exit(1)
+	}
+}
+func child() {
+	fmt.Printf("Running %v as PID %d \n", os.Args[2:], os.Getpid())
+	syscall.Sethostname([]byte("container-demo"))
+	cmd := exec.Command(os.Args[2], os.Args[3:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Error running the command - %s\n", err)
 		os.Exit(1)
