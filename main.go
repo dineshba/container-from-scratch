@@ -28,7 +28,7 @@ func run() {
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		// UTS - Unix Timesharing System
-		Cloneflags: syscall.CLONE_NEWUTS,
+		Cloneflags: syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID,
 	}
 	if err := cmd.Run(); err != nil {
 		fmt.Println("ERROR:", err)
@@ -42,6 +42,9 @@ func child() {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	syscall.Chroot("./bundle/rootfs")
+	os.Chdir("/")
+	syscall.Mount("proc", "proc", "proc", 0, "")
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Error running the command - %s\n", err)
 		os.Exit(1)
