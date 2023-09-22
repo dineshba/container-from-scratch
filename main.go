@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strconv"
 	"syscall"
 )
 
@@ -38,6 +40,7 @@ func run() {
 func child() {
 	fmt.Printf("Running %v as PID %d \n", os.Args[2:], os.Getpid())
 	syscall.Sethostname([]byte("container-demo"))
+	controlgroup()
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -49,4 +52,12 @@ func child() {
 		fmt.Printf("Error running the command - %s\n", err)
 		os.Exit(1)
 	}
+}
+
+func controlgroup() {
+	cgPath := filepath.Join("/sys/fs/cgroup/", "demo1")
+	os.Mkdir(cgPath, 0755)
+	os.WriteFile(filepath.Join(cgPath, "memory.high"), []byte("100000000"), 0700)
+	os.WriteFile(filepath.Join(cgPath, "memory.swap.high"), []byte("0"), 0700)
+	os.WriteFile(filepath.Join(cgPath, "cgroup.procs"), []byte(strconv.Itoa(os.Getpid())), 0700)
 }
